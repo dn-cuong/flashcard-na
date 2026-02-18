@@ -765,8 +765,14 @@ int main() {
 
     do {
         showMenu();
-        cin >> userChoice;
-        cin.ignore();
+        if (!(cin >> userChoice)) {
+        cin.clear();                
+        cin.ignore(1000, '\n');      
+        cout << "Invalid input! Please enter a number 1-7.\n";
+        continue;                    
+}
+cin.ignore();
+
 
         switch (userChoice) {
             case 1: manager.addCard();        break;
