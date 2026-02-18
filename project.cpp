@@ -10,10 +10,78 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <filesystem>
+#include <cstdlib>
+#include <ctime>
+#include <algorithm>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#include <windows.h>
+#else
+#include <dirent.h>
+#include <unistd.h>
+#endif
+
 using namespace std;
 
-namespace fs = std::filesystem;
+// Cross-platform filesystem helpers (no C++17 filesystem required)
+bool dirExists(const string& path) {
+    struct stat info;
+    return (stat(path.c_str(), &info) == 0 && (info.st_mode & S_IFDIR));
+}
+
+bool fileExists(const string& path) {
+    struct stat info;
+    return (stat(path.c_str(), &info) == 0 && (info.st_mode & S_IFREG));
+}
+
+bool createDir(const string& path) {
+#ifdef _WIN32
+    return _mkdir(path.c_str()) == 0 || dirExists(path);
+#else
+    return mkdir(path.c_str(), 0755) == 0 || dirExists(path);
+#endif
+}
+
+bool deleteFileFs(const string& path) {
+#ifdef _WIN32
+    return remove(path.c_str()) == 0;
+#else
+    return unlink(path.c_str()) == 0;
+#endif
+}
+
+vector<string> listTxtFiles(const string& folderPath) {
+    vector<string> files;
+#ifdef _WIN32
+    WIN32_FIND_DATAA findData;
+    HANDLE hFind = FindFirstFileA((folderPath + "/*").c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) return files;
+    
+    do {
+        string name = findData.cFileName;
+        if (name.length() > 4 && name.substr(name.length() - 4) == ".txt") {
+            files.push_back(name);
+        }
+    } while (FindNextFileA(hFind, &findData));
+    FindClose(hFind);
+#else
+    DIR* dir = opendir(folderPath.c_str());
+    if (dir == nullptr) return files;
+    
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        string name = entry->d_name;
+        if (name.length() > 4 && name.substr(name.length() - 4) == ".txt") {
+            files.push_back(name);
+        }
+    }
+    closedir(dir);
+#endif
+    return files;
+}
 
 class Question {
 public:
@@ -102,6 +170,40 @@ public:
         } while (curr != tail->next);
         return count;
     }
+
+    // Remove a node at a specific index (1-based)
+    bool removeAt(int index) {
+        if (!tail || index < 1 || index > getSize()) return false;
+
+        Node<T>* toDelete;
+        if (tail->next == tail) {
+            // Only one node
+            toDelete = tail;
+            tail = nullptr;
+        } else {
+            // Find the node before the one to delete
+            Node<T>* prev = tail->next;
+            for (int i = 1; i < index - 1; ++i) {
+                prev = prev->next;
+            }
+            // If deleting the first node
+            if (index == 1) {
+                toDelete = tail->next;
+                tail->next = toDelete->next;
+            } else if (prev->next == tail) {
+                // Deleting the tail
+                toDelete = tail;
+                prev->next = tail->next;
+                tail = prev;
+            } else {
+                // Deleting a middle node
+                toDelete = prev->next;
+                prev->next = toDelete->next;
+            }
+        }
+        delete toDelete;
+        return true;
+    }
 };
 
 //////////////////////////////////////////////////////////////
@@ -126,8 +228,8 @@ private:
 
     // Luu flashcard xuong file
     void saveToFile(const Flashcard& fc) const {
-        if (!fs::exists(folderName)) {
-            fs::create_directory(folderName);
+        if (!dirExists(folderName)) {
+            createDir(folderName);
         }
         string filename = folderName + "/" + fc.title + ".txt";
         ofstream outputFile(filename);
@@ -145,8 +247,8 @@ private:
     // Xoa file cu (dung khi doi ten title)
     void deleteFile(const string& title) const {
         string filename = folderName + "/" + title + ".txt";
-        if (fs::exists(filename)) {
-            fs::remove(filename);
+        if (fileExists(filename)) {
+            deleteFileFs(filename);
         }
     }
 
@@ -201,6 +303,14 @@ private:
         return val;
     }
 
+    // Shuffle a vector of indices using Fisher-Yates algorithm
+    void shuffleIndices(vector<int>& indices) const {
+        for (int i = indices.size() - 1; i > 0; --i) {
+            int j = rand() % (i + 1);
+            swap(indices[i], indices[j]);
+        }
+    }
+
 public:
     void addCard() {
         string title;
@@ -219,7 +329,7 @@ public:
                 continue;
             }
             string filename = folderName + "/" + title + ".txt";
-            if (fs::exists(filename)) {
+            if (fileExists(filename)) {
                 cout << "Title \"" << title << "\" already exists in folder! Please enter a different title.\n";
                 continue;
             }
@@ -326,7 +436,7 @@ public:
                             continue;
                         }
                         string newFilename = folderName + "/" + newTitle + ".txt";
-                        if (fs::exists(newFilename)) {
+                        if (fileExists(newFilename)) {
                             cout << "Title \"" << newTitle << "\" already exists in folder! Please enter a different title.\n";
                             continue;
                         }
@@ -437,39 +547,37 @@ public:
     }
 
     void loadFlashcards() {
-        if (!fs::exists(folderName)) {
-            fs::create_directory(folderName);
+        if (!dirExists(folderName)) {
+            createDir(folderName);
             return;
         }
 
         cards = CircularLinkedList<Flashcard>();
 
         int loadedCount = 0;
-        for (const auto& entry : fs::directory_iterator(folderName)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".txt") {
-                string filepath = entry.path().string();
-                string filename = entry.path().filename().string();
+        vector<string> files = listTxtFiles(folderName);
+        for (const string& filename : files) {
+            string filepath = folderName + "/" + filename;
 
-                ifstream inputFile(filepath);
-                if (!inputFile) continue;
+            ifstream inputFile(filepath);
+            if (!inputFile) continue;
 
-                string title = filename.substr(0, filename.find_last_of('.'));
-                Flashcard newFlashcard(title);
+            string title = filename.substr(0, filename.find_last_of('.'));
+            Flashcard newFlashcard(title);
 
-                string line;
-                while (getline(inputFile, line)) {
-                    if (line.empty()) continue;
-                    size_t separatorIndex = line.find('|');
-                    if (separatorIndex != string::npos) {
-                        string questionText = line.substr(0, separatorIndex);
-                        string answerText = line.substr(separatorIndex + 1);
-                        newFlashcard.questions.push_back(Question(questionText, answerText));
-                    }
+            string line;
+            while (getline(inputFile, line)) {
+                if (line.empty()) continue;
+                size_t separatorIndex = line.find('|');
+                if (separatorIndex != string::npos) {
+                    string questionText = line.substr(0, separatorIndex);
+                    string answerText = line.substr(separatorIndex + 1);
+                    newFlashcard.questions.push_back(Question(questionText, answerText));
                 }
-                inputFile.close();
-                cards.insert(newFlashcard);
-                loadedCount++;
             }
+            inputFile.close();
+            cards.insert(newFlashcard);
+            loadedCount++;
         }
 
         cout << "Loaded " << loadedCount << " flashcard(s).\n";
@@ -479,6 +587,22 @@ public:
         if (cards.isEmpty()) {
             cout << "\nNo flashcards loaded.\n";
             return;
+        }
+
+        // Ask if user wants shuffle mode
+        char shuffleChoice;
+        while (true) {
+            cout << "\nEnable shuffle mode? (y/n): ";
+            cin >> shuffleChoice;
+            cin.ignore();
+            shuffleChoice = tolower(shuffleChoice);
+            if (shuffleChoice == 'y' || shuffleChoice == 'n') break;
+            cout << "Invalid input! Please enter 'y' or 'n'.\n";
+        }
+        bool shuffleMode = (shuffleChoice == 'y');
+
+        if (shuffleMode) {
+            cout << "\n[Shuffle mode enabled - questions will be randomized!]\n";
         }
 
         cout << "\n+======== Select Flashcard to Review ========+\n";
@@ -504,10 +628,26 @@ public:
         do {
             cout << "\n+==============================+\n";
             cout << "| Flashcard: " << currentNode->data.title << "\n";
+            if (shuffleMode) {
+                cout << "| [SHUFFLE MODE]               |\n";
+            }
             cout << "+==============================+\n";
 
+            // Create index vector for questions
+            vector<int> questionOrder;
             for (size_t i = 0; i < currentNode->data.questions.size(); ++i) {
-                printQuestionBox(currentNode->data.questions[i], i + 1);
+                questionOrder.push_back(i);
+            }
+
+            // Shuffle if enabled
+            if (shuffleMode && questionOrder.size() > 1) {
+                shuffleIndices(questionOrder);
+            }
+
+            // Display questions in order (shuffled or normal)
+            for (size_t i = 0; i < questionOrder.size(); ++i) {
+                int qIdx = questionOrder[i];
+                printQuestionBox(currentNode->data.questions[qIdx], i + 1);
             }
 
             currentNode = currentNode->next;
@@ -544,6 +684,61 @@ public:
             curr = curr->next;
         } while (curr != cards.getHead());
     }
+
+    //////////////////////////////////////////////////////////////
+    // DELETE CARD
+    //////////////////////////////////////////////////////////////
+    void deleteCard() {
+        if (cards.isEmpty()) {
+            cout << "\nNo flashcards loaded.\n";
+            return;
+        }
+
+        // Display list of flashcards
+        cout << "\n+======== Select Flashcard to Delete ========+\n";
+        Node<Flashcard>* curr = cards.getHead();
+        int idx = 1;
+        do {
+            cout << "| " << idx++ << ". " << curr->data.title
+                 << " (" << curr->data.questions.size() << " questions)\n";
+            curr = curr->next;
+        } while (curr != cards.getHead());
+        cout << "+============================================+\n";
+
+        int totalCards = cards.getSize();
+        cout << "Enter flashcard number (1-" << totalCards << "): ";
+        int choice = inputInt(1, totalCards);
+
+        // Get the title before deletion for file removal
+        Node<Flashcard>* targetNode = cards.getHead();
+        for (int i = 1; i < choice; ++i) {
+            targetNode = targetNode->next;
+        }
+        string titleToDelete = targetNode->data.title;
+
+        // Confirm deletion
+        char confirm;
+        while (true) {
+            cout << "Delete flashcard \"" << titleToDelete << "\"? (y/n): ";
+            cin >> confirm;
+            cin.ignore();
+            confirm = tolower(confirm);
+            if (confirm == 'y' || confirm == 'n') break;
+            cout << "Invalid input! Please enter 'y' or 'n'.\n";
+        }
+
+        if (confirm == 'y') {
+            // Delete from memory
+            cards.removeAt(choice);
+
+            // Delete from file
+            deleteFile(titleToDelete);
+
+            cout << "Flashcard \"" << titleToDelete << "\" deleted successfully!\n";
+        } else {
+            cout << "Deletion cancelled.\n";
+        }
+    }
 };
 
 //////////////////////////////////////////////////////////////
@@ -555,15 +750,19 @@ void showMenu() {
     cout << "+====================================+\n";
     cout << "| 1. Add Flashcard                    |\n";
     cout << "| 2. Edit Flashcard                   |\n";
-    cout << "| 3. Reload Flashcards from folder    |\n";
-    cout << "| 4. Review Cards                     |\n";
-    cout << "| 5. Show All Flashcards              |\n";
-    cout << "| 6. Exit                             |\n";
+    cout << "| 3. Delete Flashcard                 |\n";
+    cout << "| 4. Reload Flashcards from folder    |\n";
+    cout << "| 5. Review Cards                     |\n";
+    cout << "| 6. Show All Flashcards              |\n";
+    cout << "| 7. Exit                             |\n";
     cout << "+====================================+\n";
     cout << "Enter choice > ";
 }
 
 int main() {
+    // Initialize random seed for shuffle mode
+    srand(time(0));
+
     FlashcardManager manager;
     int userChoice = 0;
 
@@ -577,14 +776,15 @@ int main() {
         switch (userChoice) {
             case 1: manager.addCard();        break;
             case 2: manager.editCard();       break;
-            case 3: manager.loadFlashcards(); break;
-            case 4: manager.reviewCards();    break;
-            case 5: manager.showAll();        break;
-            case 6: cout << "Goodbye!\n";     break;
-            default: cout << "Invalid choice. Please enter 1-6.\n";
+            case 3: manager.deleteCard();     break;
+            case 4: manager.loadFlashcards(); break;
+            case 5: manager.reviewCards();    break;
+            case 6: manager.showAll();        break;
+            case 7: cout << "Goodbye!\n";     break;
+            default: cout << "Invalid choice. Please enter 1-7.\n";
         }
 
-    } while (userChoice != 6);
+    } while (userChoice != 7);
 
     return 0;
 }
