@@ -1,81 +1,145 @@
-# Flashcard Study System
 
-## Project Overview
+# Flashcard Study System 
 
-This project implements a **Flashcard Study System** using a **Circularly Linked List** data structure. The program allows users to create, save, load, and review flashcards in a continuous circular manner, making it ideal for study sessions.
+## 1. Project Name
+**Flashcard Study System**
 
-## Key Features
+---
 
-- **Circular Linked List Implementation**: Template-based circular linked list that can store any data type
-- **Flashcard Management**: Create flashcards with multiple question-answer pairs
-- **File Persistence**: Save and load flashcards from text files
-- **Circular Navigation**: Review flashcards in a continuous loop, demonstrating the circular nature of the linked list
-- **User-Friendly Interface**: Menu-driven system with formatted output
+## 2. Overview
+The Flashcard Study System is a C++17 console application that provides a new way to retain information through the use of flashcards. With this application, users won't end up at a 'dead end,' unlike the usual linear lists. This is accomplished through the use of a Circular Linked List, a data structure that allows users to continually cycle through their card sets, mimicking an actual stack of flashcards. The system offers a form of persistent storage by saving the user's decks as text files within the user's local storage.
 
-## Data Structures
 
-### CircularLinkedList<T>
-A template class implementing a circularly linked list where the last node points back to the first node, creating a circular structure. Key methods:
-- `insert(T value)`: Insert a new element at the end
-- `isEmpty()`: Check if the list is empty
-- `getHead()`: Get the first node
-- `getTail()`: Get the last node
-- `getSize()`: Get the number of elements
-- `debugPrint()`: Print all elements
+---
 
-### Node<T>
-Template class representing a node in the circular linked list, containing:
-- `data`: The stored data of type T
-- `next`: Pointer to the next node
+## 3. Group Members & Work Distribution
 
-### Flashcard
-Class representing a flashcard set with:
-- `title`: Name of the flashcard set
-- `questions`: Vector of Question objects
+| Student Name | Contribution |
+|--------------|--------------|
+| Dinh Gia Bao Ngo - U30653179 | 34% |
+| Dang Cuong Nguyen - U96338337 | 33% |
+| Khai Dong Nguyen - U76714282 | 33% |
 
-### Question
-Class representing a question-answer pair with:
-- `question`: The question text
-- `answer`: The answer text
+---
 
-## Compilation
+## 4. How to Run the Program
 
-This program requires **C++17** or later due to the use of `<filesystem>` header.
-
+### Compile
 ```bash
 g++ -std=c++17 -o project project.cpp
+````
+
+### Run
+
+**Windows**
+
+```bash
+project.exe
 ```
 
-## Usage
+**Linux / macOS / Student Cluster**
 
-1. **Add Flashcard**: Create a new flashcard set with a title and multiple questions
-2. **Load Flashcards**: Load all flashcards from the `flashcards/` folder
-3. **Review Cards**: Navigate through flashcards in circular order
-4. **Show All Flashcards**: Display all loaded flashcards
-5. **Exit**: Exit the program
-
-## File Format
-
-Flashcards are saved as text files in the `flashcards/` folder. Each line contains a question and answer separated by a pipe character (`|`):
-
-```
-What is the capital of France?|Paris
-What is 2+2?|4
+```bash
+./project
 ```
 
-## Project Requirements Met
+The program will automatically create a folder named `flashcards/` if it does not already exist.
 
-✅ **Circularly Linked List**: Fully implemented with template support  
-✅ **Template-based**: Accepts arbitrary element types  
-✅ **Original Design**: Flashcard study system (creative application)  
-✅ **Documentation**: All functions and classes are well-documented  
-✅ **Clear Naming**: Variables and functions have descriptive names  
-✅ **Clean Code**: Follows coding best practices  
-✅ **Standard Libraries Only**: Uses only C++ standard library
+---
 
-## Design Highlights
+## 5. User Interaction Guide
 
-The circular linked list is particularly well-suited for this application because:
-- Users can continuously cycle through flashcards without reaching an "end"
-- The circular structure naturally supports repeated study sessions
-- Navigation demonstrates the circular nature of the data structure
+
+
+### File Format
+
+Flashcards are saved as text files inside the `flashcards/` folder.
+Each line contains:
+
+```
+question|answer
+```
+
+---
+
+### Main Menu Navigation
+
+After launching, select an option by entering its number.
+
+---
+
+### A. Creating a New Flashcard Set
+
+1. Select **[1] Add Flashcard**
+2. Enter a unique title
+3. Enter number of questions
+4. For each question:
+
+   * Enter question text
+   * Enter answer text
+5. Choose whether to save to file (`y/n`)
+
+---
+
+### B. Editing an Existing Set
+
+1. Select **[2] Edit Flashcard**
+2. Choose the deck index
+3. Options:
+
+   * Edit title
+   * Edit question/answer
+   * Add question
+   * Delete question
+   * Save changes
+   * Return to menu
+
+---
+
+### C. Reviewing (Study Mode)
+
+1. Select **[5] Review Cards**
+2. Choose shuffle mode (`y/n`)
+3. Select deck index
+4. For each question:
+
+   * Type your answer
+   * View correct answer
+   * Mark yourself correct/incorrect
+5. Continue to next deck or exit
+
+---
+
+### D. Deleting a Flashcard Set
+
+1. Select **[3] Delete Flashcard**
+2. Choose deck index
+3. Confirm deletion (`y/n`)
+4. Deck is removed from memory and disk
+
+---
+
+### E. Reloading Data
+
+1. Select **[4] Reload Flashcards**
+2. Program rescans the `flashcards/` directory and rebuilds the linked list
+
+---
+
+### F. Displaying All Decks
+
+1. Select **[6] Show All Flashcards**
+2. Displays title and number of questions for each deck
+
+---
+
+### G. Exiting
+
+Select **[7] Exit** to close the application.
+
+---
+
+## 6. Academic Integrity Statement
+
+We understand that there will be no tolerance towards academic dishonesty, and that cheating will lead to an academic referral. We are aware of the identified behaviors that are considered violations of the academic standards for Undergraduate and Graduate students per USF policy.
+
