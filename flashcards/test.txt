@@ -1,10 +1,5 @@
-How re you|55
-26|2626
-262|2
-62|6
-26|2
-6|26
-26|'262'
-6|26
-|26
-huihiu|9
+What is CPU?|The brain of the computer that processes instructions
+What is RAM?|Temporary memory used while programs run
+What is software?|Programs that tell a computer what to do
+What is hardware?|Physical parts of a computer
+What is an operating system?|Software that manages computer resources
