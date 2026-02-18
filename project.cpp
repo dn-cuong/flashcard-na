@@ -214,7 +214,6 @@ private:
     CircularLinkedList<Flashcard> cards;
     const string folderName = "flashcards";
 
-    // Kiem tra title trung trong memory (bo qua node dang edit)
     bool titleExistsInMemory(const string& title, const string& excludeTitle = "") const {
         if (cards.isEmpty()) return false;
         Node<Flashcard>* curr = cards.getHead();
@@ -226,7 +225,6 @@ private:
         return false;
     }
 
-    // Luu flashcard xuong file
     void saveToFile(const Flashcard& fc) const {
         if (!dirExists(folderName)) {
             createDir(folderName);
@@ -244,7 +242,6 @@ private:
         cout << "Saved to " << filename << "\n";
     }
 
-    // Xoa file cu (dung khi doi ten title)
     void deleteFile(const string& title) const {
         string filename = folderName + "/" + title + ".txt";
         if (fileExists(filename)) {
@@ -285,7 +282,6 @@ private:
         cout << endl;
     }
 
-    // Chon so nguyen hop le trong khoang [min, max]
     int inputInt(int min, int max) const {
         int val;
         while (true) {
@@ -377,7 +373,6 @@ public:
             return;
         }
 
-        // Buoc 1: Hien thi danh sach va chon flashcard
         cout << "\n+======== Select Flashcard to Edit ========+\n";
         Node<Flashcard>* curr = cards.getHead();
         int idx = 1;
@@ -392,15 +387,15 @@ public:
         cout << "Enter flashcard number (1-" << totalCards << "): ";
         int choice = inputInt(1, totalCards);
 
-        // Di chuyen den node duoc chon
+  
         Node<Flashcard>* targetNode = cards.getHead();
         for (int i = 1; i < choice; ++i) {
             targetNode = targetNode->next;
         }
 
-        Flashcard& fc = targetNode->data;  // Reference truc tiep de sua trong memory
+        Flashcard& fc = targetNode->data;  
 
-        // Buoc 2: Menu chinh sua
+        // Menu
         bool editDone = false;
         while (!editDone) {
             cout << "\n+======== Edit: \"" << fc.title << "\" ========+\n";
@@ -416,7 +411,7 @@ public:
 
             switch (editChoice) {
 
-                // --- Sua title ---
+                // --- Edit title ---
                 case 1: {
                     string newTitle;
                     while (true) {
@@ -442,14 +437,14 @@ public:
                         }
                         break;
                     }
-                    // Xoa file cu neu ton tai
+                    
                     deleteFile(fc.title);
                     cout << "Title changed: \"" << fc.title << "\" -> \"" << newTitle << "\"\n";
                     fc.title = newTitle;
                     break;
                 }
 
-                // --- Sua cau hoi ---
+                // --- Edit ---
                 case 2: {
                     if (fc.questions.empty()) {
                         cout << "No questions to edit!\n";
@@ -485,7 +480,7 @@ public:
                     break;
                 }
 
-                // --- Them cau hoi moi ---
+                // --- Add ---
                 case 3: {
                     string questionText, answerText;
                     cout << "\n--- Add New Question ---\n";
@@ -498,7 +493,7 @@ public:
                     break;
                 }
 
-                // --- Xoa cau hoi ---
+                // --- Delete ---
                 case 4: {
                     if (fc.questions.empty()) {
                         cout << "No questions to delete!\n";
@@ -530,13 +525,13 @@ public:
                     break;
                 }
 
-                // --- Luu file ---
+                // --- Save to file ---
                 case 5: {
                     saveToFile(fc);
                     break;
                 }
 
-                // --- Thoat ---
+                // --- Exit ---
                 case 6: {
                     editDone = true;
                     cout << "Done editing \"" << fc.title << "\".\n";
